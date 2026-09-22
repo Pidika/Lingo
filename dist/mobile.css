@@ -1,0 +1,33 @@
+/* Allow content to shrink and wrap instead of hiding overflow. */
+.workspace,main,.card,.list-row>div,.hero-copy,.welcome>div{min-width:0}
+.section-head,.welcome,.tags,.audio-row,.lesson-actions,.language-head{gap:12px;flex-wrap:wrap}
+.phrase .target{overflow-wrap:anywhere;line-height:1.4}
+.recording-panel{margin:24px 0;padding:16px;border:1px solid var(--border);border-radius:10px}
+.recording-panel summary{cursor:pointer;font-weight:600}
+#speech-feedback{padding:15px;background:#edf2e4;border-radius:10px;overflow-wrap:anywhere}
+dialog{max-height:calc(100dvh - 24px);overscroll-behavior:contain}
+dialog button{white-space:normal}
+.lesson-actions>*{min-width:0}
+@media(max-width:740px){
+  aside{padding:12px 10px 8px}
+  nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
+  nav button{min-width:0;flex-direction:column;justify-content:flex-start;gap:5px;padding:8px 2px;line-height:1.2;min-height:62px}
+  nav button span{font-size:.75rem;overflow-wrap:anywhere;text-align:center}
+  .section-head{align-items:flex-start;flex-direction:column;gap:8px}
+  .section-head>span{font-size:.8rem}
+  .section-head button{min-height:44px;min-width:44px}
+  .welcome{align-items:flex-start}.day-chip{white-space:normal}
+  .hero{grid-template-columns:minmax(0,1fr);min-height:0}.hero-art{min-height:130px}
+  .hero-art:after{background:linear-gradient(180deg,#214b41,transparent 45%)}
+  main{padding:24px 16px}.card{padding:20px}
+  .lesson-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr)}
+  .lesson-actions button{padding:12px 10px;font-size:1rem}
+  dialog{padding:22px 18px;width:calc(100% - 20px)}
+  .phrase{padding:20px 12px}.phrase .target{font-size:clamp(1.45rem,6vw,2rem)}
+  .audio-row{justify-content:center}.audio-row button{padding:12px;font-size:.9rem}
+  .list-row{flex-wrap:wrap}.list-row>div{flex-basis:60%}
+  .word{align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .large-text nav button span{font-size:.8rem}.large-text .section-head>span{font-size:1rem}
+  .large-text .lesson-actions{grid-template-columns:1fr}
+  .import input{max-width:100%}
+}
