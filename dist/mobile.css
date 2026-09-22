@@ -4,6 +4,13 @@
 .phrase .target{overflow-wrap:anywhere;line-height:1.4}
 .recording-panel{margin:24px 0;padding:16px;border:1px solid var(--border);border-radius:10px}
 .recording-panel summary{cursor:pointer;font-weight:600}
+.grammar-note,.transcript,.writing-task,.video-extension{margin:18px 0;padding:16px;border:1px solid var(--border);border-radius:10px}
+.grammar-note summary,.transcript summary,.writing-task summary,.video-extension summary{cursor:pointer;font-weight:600;min-height:28px}
+.writing-task label{display:block;margin:16px 0 10px;line-height:1.5}
+.writing-task input{display:block;width:100%;min-width:0;margin:12px 0;padding:13px;border:1px solid #9bab9e;border-radius:8px;font:inherit;color:inherit}
+.lesson-picture{margin:18px 0}.lesson-picture img{display:block;width:100%;height:160px;object-fit:cover;border-radius:12px}
+.lesson-picture figcaption{font-size:.75rem;color:var(--muted);margin-top:8px;line-height:1.5}
+.transcript .phrase p{font-size:1.1rem;line-height:1.6}
 #speech-feedback{padding:15px;background:#edf2e4;border-radius:10px;overflow-wrap:anywhere}
 dialog{max-height:calc(100dvh - 24px);overscroll-behavior:contain}
 dialog button{white-space:normal}

@@ -1,8 +1,11 @@
 // Speech matching is a word check, not an acoustic pronunciation grade.
 function normalizeSpeech(text, lang) {
   let value = text.toLocaleLowerCase(lang).normalize('NFD').replace(/\p{M}/gu, '').replace(/ß/g, 'ss');
-  const numbers = lang === 'fr' ? ['zero','un','deux','trois','quatre','cinq'] : ['null','eins','zwei','drei','vier','funf'];
-  value = value.replace(/\b[0-5]\b/g, n => numbers[Number(n)]);
+  const numbers = lang === 'fr' ? ['zero','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix'] : ['null','eins','zwei','drei','vier','funf','sechs','sieben','acht','neun','zehn'];
+  value = value.replace(/\b(10|[0-9]):00\b/g, '$1');
+  if (lang === 'fr') value = value.replace(/\b(10|[0-9])\s*h(?:eures?)?\b/g, '$1 heures');
+  value = value.replace(/€/g, lang === 'fr' ? ' euros' : ' Euro').toLowerCase();
+  value = value.replace(/\b(10|[0-9])\b/g, n => numbers[Number(n)]);
   return value.replace(/[^\p{L}\p{N}]/gu, '');
 }
 function matchesSpeech(expected, heard, lang) {
