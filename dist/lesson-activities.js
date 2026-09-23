@@ -4,7 +4,7 @@ const LESSON_PICTURES = {
   travel:{url:'https://upload.wikimedia.org/wikipedia/commons/0/02/Riomaggiore_train_station.jpg',alt:'Riomaggiore railway station in Italy.',caption:'Picture prompt: ask where the station is. Photo taken in Italy.',source:'https://commons.wikimedia.org/wiki/File:Riomaggiore_train_station.jpg',credit:'Tangopaso · public domain'}
 };
 function chapterName(index) {
-  return index < 7 ? 'FIRST CONNECTIONS' : index < 14 ? 'PEOPLE & HOME' : index < 21 ? 'EVERYDAY LIFE' : 'OUT IN THE WORLD';
+  return index < 7 ? 'FIRST CONNECTIONS' : index < 14 ? 'PEOPLE & HOME' : index < 21 ? 'EVERYDAY LIFE' : index < 30 ? 'OUT IN THE WORLD' : index < 40 ? 'SHOPPING & CHOICES' : index < 49 ? 'PLANS & ROUTINES' : 'STAYS, JOURNEYS & STORIES';
 }
 function listeningMarkup(d, l) {
   const dialogue = d.dialogue.map((line,i)=>`<p lang="${l}" style="text-align:${i%2?'right':'left'}">${esc(line)}</p>`).join('');

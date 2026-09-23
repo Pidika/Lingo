@@ -1,11 +1,27 @@
 // Speech matching is a word check, not an acoustic pronunciation grade.
 function normalizeSpeech(text, lang) {
   let value = text.toLocaleLowerCase(lang).normalize('NFD').replace(/\p{M}/gu, '').replace(/ß/g, 'ss');
-  const numbers = lang === 'fr' ? ['zero','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix'] : ['null','eins','zwei','drei','vier','funf','sechs','sieben','acht','neun','zehn'];
-  value = value.replace(/\b(10|[0-9]):00\b/g, '$1');
-  if (lang === 'fr') value = value.replace(/\b(10|[0-9])\s*h(?:eures?)?\b/g, '$1 heures');
+  const numbers = lang === 'fr' ? ['zero','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix','onze','douze','treize','quatorze','quinze','seize','dix-sept','dix-huit','dix-neuf','vingt'] : ['null','eins','zwei','drei','vier','funf','sechs','sieben','acht','neun','zehn','elf','zwolf','dreizehn','vierzehn','funfzehn','sechzehn','siebzehn','achtzehn','neunzehn','zwanzig'];
+  // Canonicalise clock expressions before removing spaces or expanding digits.
+  // This compares equivalent transcriptions (halb neun / 8:30 Uhr), not accents.
+  const hourWords=numbers.slice(0,13).join('|');
+  const hourPattern='(?:'+hourWords+'|ein|[0-9]{1,2})';
+  const hourValue=word=>word==='ein'?1:/^\d+$/.test(word)?Number(word):numbers.indexOf(word);
+  const clock=(h,m=0)=>`clock${h}m${String(m).padStart(2,'0')}x`;
+  value=value.replace(/\b([0-9]{1,2}):([0-5][0-9])(?:\s*(?:uhr|heures?))?\b/g,(_,h,m)=>clock(Number(h),Number(m)));
+  if(lang==='fr'){
+    value=value.replace(/\b([0-9]{1,2})\s*h\s*([0-5][0-9])?\b/g,(_,h,m)=>clock(Number(h),Number(m||0)));
+    value=value.replace(new RegExp('\\b('+hourPattern+') heures?(?: (et quart|et demie?|moins le quart|[0-5][0-9]))?\\b','g'),(_,h,part)=>{
+      const hour=hourValue(h);
+      return part==='moins le quart'?clock((hour+11)%12||12,45):clock(hour,part==='et quart'?15:part?.startsWith('et demi')?30:Number(part||0));
+    });
+  }else{
+    value=value.replace(new RegExp('\\bviertel (nach|vor) ('+hourPattern+')\\b','g'),(_,direction,h)=>clock(direction==='vor'?((hourValue(h)+11)%12||12):hourValue(h),direction==='vor'?45:15));
+    value=value.replace(new RegExp('\\bhalb ('+hourPattern+')\\b','g'),(_,h)=>clock((hourValue(h)+11)%12||12,30));
+    value=value.replace(new RegExp('\\b('+hourPattern+') uhr\\b','g'),(_,h)=>clock(hourValue(h)));
+  }
   value = value.replace(/€/g, lang === 'fr' ? ' euros' : ' Euro').toLowerCase();
-  value = value.replace(/\b(10|[0-9])\b/g, n => numbers[Number(n)]);
+  value = value.replace(/\b(20|1[0-9]|[0-9])\b/g, n => numbers[Number(n)]);
   return value.replace(/[^\p{L}\p{N}]/gu, '');
 }
 function matchesSpeech(expected, heard, lang) {
