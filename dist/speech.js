@@ -107,7 +107,7 @@ function checkSpeech() {
     const matchingResult = Array.from(result).find(r => matchesSpeech(target, r.transcript, languageAtStart));
     const heard = (matchingResult || result[0]).transcript;
     const matched = !!matchingResult;
-    if (matched) speechPassed.add(index);
+    if (matched) {speechPassed.add(index);saveLesson();}
     message(matched ? `Words matched: “${heard}”. You can continue. This is not an accent score.` : `Heard: “${heard}”. Expected: “${target}”. Listen to the model and try again. Recognition can make mistakes.`);
     document.querySelector('[data-action="next-speaking"]').disabled = !speechPassed.has(index) || index === active.d.phrases.length-1;
     document.querySelector('[data-action="next-stage"]').disabled = speechPassed.size !== active.d.phrases.length;

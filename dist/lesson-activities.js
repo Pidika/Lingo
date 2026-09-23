@@ -4,7 +4,7 @@ const LESSON_PICTURES = {
   travel:{url:'https://upload.wikimedia.org/wikipedia/commons/0/02/Riomaggiore_train_station.jpg',alt:'Riomaggiore railway station in Italy.',caption:'Picture prompt: ask where the station is. Photo taken in Italy.',source:'https://commons.wikimedia.org/wiki/File:Riomaggiore_train_station.jpg',credit:'Tangopaso · public domain'}
 };
 function chapterName(index) {
-  return index < 7 ? 'FIRST CONNECTIONS' : index < 14 ? 'PEOPLE & HOME' : index < 21 ? 'EVERYDAY LIFE' : index < 30 ? 'OUT IN THE WORLD' : index < 40 ? 'SHOPPING & CHOICES' : index < 49 ? 'PLANS & ROUTINES' : 'STAYS, JOURNEYS & STORIES';
+  return index < 7 ? 'FIRST CONNECTIONS' : index < 14 ? 'PEOPLE & HOME' : index < 21 ? 'EVERYDAY LIFE' : index < 30 ? 'OUT IN THE WORLD' : index < 40 ? 'SHOPPING & CHOICES' : index < 49 ? 'PLANS & ROUTINES' : index < 60 ? 'STAYS, JOURNEYS & STORIES' : index < 70 ? 'FIND YOUR WAY' : index < 77 ? 'LEARN & WORK' : index < 84 ? 'ASK FOR HELP' : 'LONGER CONVERSATIONS';
 }
 function listeningMarkup(d, l) {
   const dialogue = d.dialogue.map((line,i)=>`<p lang="${l}" style="text-align:${i%2?'right':'left'}">${esc(line)}</p>`).join('');
@@ -38,7 +38,7 @@ document.addEventListener('click', event=>{
     const correct = button.dataset.listeningAnswer === active.d.listening.answer;
     button.classList.add(correct?'correct':'wrong');
     $('#listening-feedback').textContent=correct?'That’s right. You picked out the important detail.':'Listen again, or open the transcript, then try another answer.';
-    if (correct) {listeningPassed=true;document.querySelector('[data-action="next-stage"]').disabled=false;}
+    if (correct) {listeningPassed=true;saveLesson();document.querySelector('[data-action="next-stage"]').disabled=false;}
   }
   if (button.dataset.action==='check-writing' && step===2) {
     const phrase=active.d.phrases.find(p=>p[0]!==active.d.answer)||active.d.phrases[0];
