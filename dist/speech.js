@@ -30,15 +30,16 @@ function matchesSpeech(expected, heard, lang) {
   return !!target && target === actual;
 }
 let speechCheck = null, speechTimer = null, speakingIndex = 0, speechPassed = new Set();
-let speechGeneration = 0, playbackGeneration = 0, playbackTimer = null;
+let speechGeneration = 0, playbackGeneration = 0, playbackTimer = null, speechStopTimer = null;
 function cancelPlayback() {
   playbackGeneration++;
   clearTimeout(playbackTimer);
   if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 }
 function playModel(text, lang, slow) {
-  if (speechCheck) { notice('Finish your speaking check before playing the model.'); return; }
+  if (speechCheck || recorder || recordingPending) { notice('Finish your microphone activity before playing the model.'); return; }
   if (!('speechSynthesis' in window)) { notice('Speech playback is unavailable in this browser.'); return; }
+  document.querySelector('#playback')?.pause?.();
   cancelPlayback();
   const generation = playbackGeneration;
   const voices = speechSynthesis.getVoices();
@@ -63,7 +64,8 @@ function playModel(text, lang, slow) {
 function resetSpeaking() { cancelSpeechCheck(); speakingIndex = 0; speechPassed = new Set(); }
 function cancelSpeechCheck() {
   speechGeneration++;
-  clearTimeout(speechTimer);
+  clearTimeout(speechTimer);clearTimeout(speechStopTimer);
+  const button=document.querySelector('#check-speech');if(button){button.disabled=!(window.SpeechRecognition||window.webkitSpeechRecognition);button.textContent='Check my speech';}
   const old = speechCheck;
   speechCheck = null;
   if (old) { old.onresult = old.onerror = old.onend = null; try { old.abort(); } catch {} }
@@ -83,10 +85,22 @@ function speakingMarkup(d, l) {
     <p>After checking the phrases, try this without hints: ${esc(d.speak)}</p>
     ${stageActions('Complete lesson ✓',speechPassed.size !== d.phrases.length)}`;
 }
+function stopSpeechWithResult(){
+ const recognition=speechCheck;if(!recognition)return;
+ const generation=speechGeneration;
+ $('#check-speech').disabled=true;$('#check-speech').textContent='Finishing…';
+ clearTimeout(speechTimer);clearTimeout(speechStopTimer);
+ // stop() requests a final result; abort if a service never sends its end event.
+ speechStopTimer=setTimeout(()=>{
+  if(speechCheck!==recognition||generation!==speechGeneration)return;
+  cancelSpeechCheck();$('#speech-feedback').textContent='The speech service did not finish. Your checked phrases are saved. Please try again.';
+ },4000);
+ try{recognition.stop();}catch{cancelSpeechCheck();$('#speech-feedback').textContent='Speech checking stopped. Please try again.';}
+}
 function checkSpeech() {
-  if (speechCheck) { speechCheck.stop(); return; }
+  if (speechCheck) { stopSpeechWithResult(); return; }
   const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!Recognition || step !== 3) return;
+  if (!Recognition || step !== 3 || !$('#lesson-dialog').open) return;
   stopRecording();
   const generation = ++speechGeneration;
   const index = speakingIndex, languageAtStart = active.l, target = active.d.phrases[index][0];
@@ -103,7 +117,8 @@ function checkSpeech() {
   recognition.onresult = event => {
     if (!current()) return;
     responded = true;
-    const result = event.results[event.resultIndex];
+    const result = event.results?.[event.resultIndex];
+    if(!result?.length){message('No words were returned. Please try again.');return;}
     const matchingResult = Array.from(result).find(r => matchesSpeech(target, r.transcript, languageAtStart));
     const heard = (matchingResult || result[0]).transcript;
     const matched = !!matchingResult;
@@ -116,15 +131,17 @@ function checkSpeech() {
     responded = true;
     const errors = {'not-allowed':'Microphone or speech access was denied. Allow it in browser settings, then retry.','service-not-allowed':'The browser speech service is unavailable. Try another supported browser.','no-speech':'No speech was detected. Move closer to the microphone and try again.','audio-capture':'No microphone was available. Check your microphone and retry.','network':'The speech service could not connect. Check your internet and retry.','language-not-supported':'This browser does not support recognition for this language.'};
     message(errors[event.error] || 'Speech checking stopped. Please try again.');
+    if(current())cancelSpeechCheck();
   };
   recognition.onend = () => {
     if (!current()) return;
-    clearTimeout(speechTimer); speechCheck = null;
+    clearTimeout(speechTimer);clearTimeout(speechStopTimer);speechCheck = null;
+    $('#check-speech').disabled=false;
     $('#check-speech').textContent = 'Check my speech again';
     if (!responded) message('No result returned. Please try again. Your lesson has not been marked complete.');
   };
-  try { recognition.start(); speechTimer = setTimeout(() => { if (current() && speechCheck) speechCheck.stop(); },15000); }
-  catch { speechCheck = null; message('Speech checking could not start. Close other microphone apps and retry.'); }
+  try { recognition.start(); if(current()&&speechCheck===recognition)speechTimer = setTimeout(() => { if (current() && speechCheck) stopSpeechWithResult(); },Math.min(60000,Math.max(20000,target.trim().split(/\s+/).length*1800))); }
+  catch { message('Speech checking could not start. Close other microphone apps and retry.');cancelSpeechCheck(); }
 }
 document.addEventListener('click',event => {
   const action = event.target.closest('button')?.dataset.action;

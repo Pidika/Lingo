@@ -28,8 +28,50 @@ if(step===2)body+=`<h3>${d.question}</h3><div class="choices">${d.options.map(o=
 if(step===3)body+=speakingMarkup(d,l);
 body+='<p class="muted">Your place saves automatically in this browser.</p><button class="secondary" data-action="restart-lesson">Restart this lesson</button>';$('#lesson-body').innerHTML=body;saveLesson();}
 function stageActions(label,disabled=false){return `<div class="lesson-actions"><button class="secondary" data-action="back-stage">Back</button><button class="primary" data-action="next-stage" ${disabled?'disabled':''}>${label}</button></div>`;}
-async function record(){if(recorder?.state==='recording'){recorder.stop();return;}if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){notice('Recording is unavailable here. You can still practise aloud.');return;}try{stream=await navigator.mediaDevices.getUserMedia({audio:true});if(!$('#lesson-dialog').open||step!==3){stream.getTracks().forEach(t=>t.stop());return;}const chunks=[];recorder=new MediaRecorder(stream);recorder.ondataavailable=e=>chunks.push(e.data);recorder.onstop=()=>{stream?.getTracks().forEach(t=>t.stop());if(recordUrl)URL.revokeObjectURL(recordUrl);recordUrl=URL.createObjectURL(new Blob(chunks,{type:recorder.mimeType}));let a=$('#playback');if(a){a.src=recordUrl;a.hidden=false;$('#record-button').textContent='● Record again';$('#record-status').textContent='Listen back, then compare with the model.';}};recorder.start();$('#record-button').textContent='■ Stop recording';$('#record-status').textContent='Recording… click stop when finished.';}catch{notice('Microphone access was unavailable. Practise aloud, or allow access and retry.');}}
-function stopRecording(){cancelSpeechCheck();cancelPlayback();if(recorder?.state==='recording')recorder.stop();stream?.getTracks().forEach(t=>t.stop());if(recordUrl){URL.revokeObjectURL(recordUrl);recordUrl=null;}if('speechSynthesis'in window)speechSynthesis.cancel();}
+let recordingGeneration=0,recordingPending=false;
+function discardRecording(){
+ recordingGeneration++;recordingPending=false;
+ const old=recorder;recorder=null;
+ if(old){old.onstop=old.ondataavailable=old.onerror=null;if(old.state!=='inactive'){try{old.stop();}catch{}}}
+ stream?.getTracks().forEach(t=>t.stop());stream=null;
+ const playback=$('#playback');if(playback){playback.pause?.();playback.removeAttribute?.('src');playback.hidden=true;}
+ if(recordUrl){URL.revokeObjectURL(recordUrl);recordUrl=null;}
+ const button=$('#record-button');if(button){button.disabled=false;button.textContent='● Record my voice';}
+}
+async function record(){
+ if(speechCheck){notice('Finish your speaking check before recording.');return;}
+ if(recordingPending)return;
+ if(recorder?.state==='recording'){const button=$('#record-button');if(button)button.disabled=true;try{recorder.stop();}catch{discardRecording();notice('Recording stopped. Please try again.');}return;}
+ if(!active||step!==3||!$('#lesson-dialog').open)return;
+ if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){notice('Recording is unavailable here. You can still practise aloud.');return;}
+ cancelPlayback();discardRecording();recordingPending=true;
+ const generation=recordingGeneration,lesson=active,index=speakingIndex;
+ const current=()=>generation===recordingGeneration&&active===lesson&&speakingIndex===index&&step===3&&$('#lesson-dialog').open;
+ const button=$('#record-button');button.disabled=true;$('#record-status').textContent='Waiting for microphone permission…';
+ let ownedStream;
+ try{
+  ownedStream=await navigator.mediaDevices.getUserMedia({audio:true});
+  if(!current()){ownedStream.getTracks().forEach(t=>t.stop());return;}
+  stream=ownedStream;const chunks=[],ownedRecorder=new window.MediaRecorder(ownedStream);recorder=ownedRecorder;
+  ownedRecorder.ondataavailable=e=>{if(current()&&e.data.size)chunks.push(e.data);};
+  ownedRecorder.onstop=()=>{
+   ownedStream.getTracks().forEach(t=>t.stop());
+   if(!current())return;
+   recorder=null;stream=null;button.disabled=false;button.textContent='● Record again';
+   if(!chunks.length){$('#record-status').textContent='No audio was captured. Please record again.';return;}
+   recordUrl=URL.createObjectURL(new Blob(chunks,{type:ownedRecorder.mimeType}));
+   const audio=$('#playback');audio.src=recordUrl;audio.hidden=false;
+   $('#record-status').textContent='Listen back, then compare with the model.';
+  };
+  ownedRecorder.onerror=()=>{ownedStream.getTracks().forEach(t=>t.stop());if(current()){discardRecording();notice('Recording failed. Check your microphone and retry.');}};
+  ownedRecorder.start();button.disabled=false;button.textContent='■ Stop recording';$('#record-status').textContent='Recording… tap stop when finished.';
+ }catch{
+  ownedStream?.getTracks().forEach(t=>t.stop());
+  if(current()){discardRecording();$('#record-status').textContent='Recording could not start. Allow microphone access, then try again.';notice('Microphone access was unavailable. Practise aloud, or allow access and retry.');}
+ }finally{if(current())recordingPending=false;}
+}
+function stopRecording(){cancelSpeechCheck();cancelPlayback();discardRecording();}
+document.addEventListener('visibilitychange',()=>{if(document.hidden){stopRecording();if(step===3&&$('#lesson-dialog').open){$('#speech-feedback').textContent='Microphone paused while this page was hidden. Tap Check my speech to try again.';$('#record-status').textContent='Recording stopped while this page was hidden.';}}});
 function finish(){if(step!==3||speechPassed.size!==active.d.phrases.length){notice('Check each speaking phrase before completing this lesson.');return;}let {l,i,d}=active;if(!state.done[l].includes(i))state.done[l].push(i);d.phrases.forEach(([p,e])=>{let key=l+':'+p;if(!state.reviews[key])state.reviews[key]={l,p,e,box:0,due:Date.now()};});delete state.resume?.[l];save();stopRecording();$('#lesson-body').innerHTML=`<div class="completion"><div class="icon-tile">✓</div><p class="eyebrow">ONE SMALL STEP, TAKEN</p><h2>${completed(l)===COURSE[l].lessons.length?'Every lesson practised. Keep talking.':'You showed up. You spoke.'}</h2><p>${completed(l)===COURSE[l].lessons.length?'You have completed all '+COURSE[l].lessons.length+' '+COURSE[l].name+' lessons. Keep reviewing your phrases and practising conversations. Completion records practice, not certified fluency.':'Day '+(i+1)+' complete. Your phrases are ready for review.'}</p><button class="primary" data-action="close">Back to my learning space</button></div>`;render();}
 let reviewKey=null;function review(){let items=due();if(!items.length){nav('words');notice('No phrases due yet. Complete a lesson or revisit your words.');return;}reviewKey=items[0][0];let r=items[0][1];$('#lesson-body').innerHTML=`<button class="close" data-action="close" aria-label="Close review">×</button><p class="eyebrow">RECALL · ${COURSE[r.l].name} · ${items.length} DUE</p><h2>How would you say this?</h2><div class="phrase"><p class="target">${esc(r.e)}</p><p id="review-answer" hidden lang="${r.l}">${esc(r.p)}</p></div><button class="secondary" data-action="reveal">Reveal answer</button><div id="review-rating" hidden><p>How well did you remember?</p><button class="secondary" data-rating="again">Let’s try again</button> <button class="primary" data-rating="good">I remembered</button></div>`;if(!$('#lesson-dialog').open)$('#lesson-dialog').showModal();}
 document.addEventListener('click',e=>{let b=e.target.closest('button');if(!b)return;if(b.dataset.view){nav(b.dataset.view);return;}if(b.dataset.language){language=b.dataset.language;render();return;}if(b.dataset.lesson){let [l,i]=b.dataset.lesson.split(':');openLesson(l,+i);return;}if(b.dataset.say){say(b.dataset.say,b.dataset.lang,b.dataset.slow==='true');return;}if(b.dataset.answer){let correct=b.dataset.answer===active.d.answer;b.classList.add(correct?'correct':'wrong');$('#feedback').textContent=correct?'That’s it! Now try saying it aloud.':'Not quite. Think about the situation and try again.';if(correct){passed=true;saveLesson();document.querySelector('[data-action="next-stage"]').disabled=false;}return;}if(b.dataset.rating){let r=state.reviews[reviewKey];if(b.dataset.rating==='good'){r.box=Math.min(5,r.box+1);r.due=Date.now()+[1,3,7,14,30,60][r.box-1]*86400000;}else{r.box=0;r.due=Date.now()+60000;}save();if(due().length)review();else{$('#lesson-dialog').close();render();notice('Review complete. Your next review is scheduled.');}return;}let a=b.dataset.action;if(a==='close'){$('#lesson-dialog').close();render();}if(a==='restart-lesson'){delete state.resume?.[active.l];openLesson(active.l,active.i);}if(a==='settings')openSettings();if(a==='review')review();if(a==='previous-phrase'){cancelPlayback();phraseIndex--;lessonRender();}if(a==='next-phrase'){cancelPlayback();if(phraseIndex<active.d.phrases.length-1)phraseIndex++;else step++;lessonRender();}if(a==='back-stage'){stopRecording();step--;lessonRender();}if(a==='next-stage'){if(step===1&&active.d.listening&&!listeningPassed)return;if(step===2&&!passed)return;cancelPlayback();if(step===3)finish();else{step++;lessonRender();}}if(a==='record')record();if(a==='reveal'){$('#review-answer').hidden=false;$('#review-rating').hidden=false;let r=state.reviews[reviewKey];say(r.p,r.l);}if(a==='video'){$('#video-slot').innerHTML='<iframe title="DW Nicos Weg A1 German film" src="https://www.youtube-nocookie.com/embed/4-eDoThe6qo" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe>';b.disabled=true;}});

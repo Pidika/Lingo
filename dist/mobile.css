@@ -38,3 +38,7 @@ dialog button{white-space:normal}
   .large-text .lesson-actions{grid-template-columns:1fr}
   .import input{max-width:100%}
 }
+
+/* Native audio controls must fit narrow phones and enlarged text. */
+.recording-panel audio{display:block;width:100%;max-width:100%;min-width:0}
+.recording-panel audio[hidden]{display:none}
