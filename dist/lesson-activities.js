@@ -4,7 +4,7 @@ const LESSON_PICTURES = {
   travel:{url:'https://upload.wikimedia.org/wikipedia/commons/0/02/Riomaggiore_train_station.jpg',alt:'Riomaggiore railway station in Italy.',caption:'Picture prompt: ask where the station is. Photo taken in Italy.',source:'https://commons.wikimedia.org/wiki/File:Riomaggiore_train_station.jpg',credit:'Tangopaso · public domain'}
 };
 function chapterName(index) {
-  return index < 7 ? 'FIRST CONNECTIONS' : index < 14 ? 'PEOPLE & HOME' : index < 21 ? 'EVERYDAY LIFE' : index < 30 ? 'OUT IN THE WORLD' : index < 40 ? 'SHOPPING & CHOICES' : index < 49 ? 'PLANS & ROUTINES' : index < 60 ? 'STAYS, JOURNEYS & STORIES' : index < 70 ? 'FIND YOUR WAY' : index < 77 ? 'LEARN & WORK' : index < 84 ? 'ASK FOR HELP' : 'LONGER CONVERSATIONS';
+  return index < 7 ? 'FIRST CONNECTIONS' : index < 14 ? 'PEOPLE & HOME' : index < 21 ? 'EVERYDAY LIFE' : index < 30 ? 'OUT IN THE WORLD' : index < 40 ? 'SHOPPING & CHOICES' : index < 49 ? 'PLANS & ROUTINES' : index < 60 ? 'STAYS, JOURNEYS & STORIES' : index < 70 ? 'FIND YOUR WAY' : index < 77 ? 'LEARN & WORK' : index < 84 ? 'ASK FOR HELP' : index < 90 ? 'LONGER CONVERSATIONS' : index < 97 ? 'PAST EXPERIENCES' : index < 104 ? 'HOSTING & PRACTICAL HELP' : index < 111 ? 'TRAVEL PLANS' : index < 120 ? 'DECIDE & PLAN TOGETHER' : index < 127 ? 'KEEP THE CONVERSATION GOING' : index < 134 ? 'ADAPT & CLARIFY' : index < 141 ? 'PRACTISE WITH PURPOSE' : 'CONVERSATION CHALLENGES';
 }
 function listeningMarkup(d, l) {
   const dialogue = d.dialogue.map((line,i)=>`<p lang="${l}" style="text-align:${i%2?'right':'left'}">${esc(line)}</p>`).join('');
